@@ -1,5 +1,4 @@
 from django.db import models
-from django.conf import settings
 from django.utils import simplejson
 from django.utils.encoding import force_unicode, smart_str
 from django.core.files.storage import default_storage
@@ -30,13 +29,18 @@ class JSONFieldDescriptor(object):
             data = instance.__dict__.get(self.field.attname, dict())
             if not isinstance(data, dict):
                 data = self.field.loads(data)
+                if data is None:
+                    data = dict()
             setattr(instance, self.field.get_cache_name(), data)
         
         return getattr(instance, self.field.get_cache_name())
 
     def __set__(self, instance, value):
         instance.__dict__[self.field.attname] = value
-        setattr(instance, self.field.get_cache_name(), value)
+        try:
+            delattr(instance, self.field.get_cache_name())
+        except AttributeError:
+            pass
 
 
 class JSONField(models.TextField):
@@ -108,7 +112,7 @@ class JSONField(models.TextField):
         # That's our definition!
         return (field_class, args, kwargs)
 
-from django.db.models.fields.files import FieldFile, FileDescriptor
+from django.db.models.fields.files import FieldFile
 
 class ImageWithProcessorsFieldFile(FieldFile):
     def __init__(self, instance, field, data):
@@ -187,9 +191,20 @@ class ImageWithProcessorsDesciptor(JSONFieldDescriptor):
         return self.field.attr_class(instance, self.field, data)
 
     def __set__(self, instance, value):
-        pass
-        #data = getattr(instance, self.field.attname)
-        #data['original'] = value
+        if isinstance(value, basestring):
+            try:
+                self.field.loads(value)
+            except ValueError:
+                pass
+            else:
+                JSONFieldDescriptor.__set__(self, instance, value)
+        elif isinstance(value, dict):
+            if value:
+                JSONFieldDescriptor.__set__(self, instance, value)
+        elif isinstance(value, File):
+            name = os.path.split(value.name)[-1]
+            content = value
+            self.__get__(instance).save(name, content, False)
 
 class ImageWithProcessorsField(JSONField):
     descriptor_class = ImageWithProcessorsDesciptor
@@ -222,11 +237,12 @@ class ImageWithProcessorsField(JSONField):
         if data is not None:
             # This value will be converted to unicode and stored in the
             # database, so leaving False as-is is not acceptable.
-            if not data:
-                data = ''
             setattr(instance, self.name, data)
 
     def formfield(self, **kwargs):
+        from django.contrib.admin import widgets
+        if 'widget' in kwargs and kwargs['widget'] == widgets.AdminTextareaWidget:
+            kwargs['widget'] = widgets.AdminFileWidget
         defaults = {'form_class': forms.FileField, 'max_length': self.max_length}
         # If a file has been provided previously, then the form doesn't require
         # that a new file is provided this time.
@@ -236,5 +252,6 @@ class ImageWithProcessorsField(JSONField):
         if 'initial' in kwargs:
             defaults['required'] = False
         defaults.update(kwargs)
+        #print defaults
         return super(ImageWithProcessorsField, self).formfield(**defaults)
 

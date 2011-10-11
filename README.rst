@@ -21,7 +21,7 @@ Add ImageWithProcessorField to your models.
     # myapp/models.py
 
     from django.db import models
-    from imagemaker.fields import ImageWithProcessorsField
+    from photoprocessor.fields import ImageWithProcessorsField
     
     thumbnails = {'thumbnail':{'resize':{'width':100, 'height':100, 'crop':'center'}, 'quality':90},
                   'display': {'resize':{'width':500, 'height':500, 'crop':'center'}, 'quality':90}}
