@@ -122,10 +122,37 @@ class ImageWithProcessorsFieldFile(FieldFile):
     
     def __getitem__(self, key):
         if key in self.field.thumbnails:
+            if key not in self.data and 'original' in self.data:
+                #generate image
+                
+                base_name, base_ext = self.name.split('/')[-1].split('.', 1)
+                source_image = Image.open(self.file)
+                config = self.fields.thumbnails[key]
+                
+                img, fmt = process_image(source_image, config)
+                
+                thumb_name = '%s-%s.%s' % (base_name, key, base_ext)
+                
+                thumb_name = self.field.generate_filename(self.instance, thumb_name)
+                #not efficient, requires image to be loaded into memory
+                thumb_fobj = ContentFile(img_to_fobj(img, fmt).read())
+                thumb_name = self.storage.save(thumb_name, thumb_fobj)
+                
+                self.data[key] = {'path':thumb_name, 'config':config}
+                self.instance.save()
+            
             if key in self.data:
                 return FieldFile(self.instance, self.field, self.data[key]['path'])
+            if self.field.no_image is not None:
+                return self.field.no_image
             return FieldFile(self.instance, self.field, None)
         raise KeyError
+    
+    def _get_url(self):
+        if not self and self.field.no_image is not None:
+            return self.field.no_image.url
+        return FieldFile._get_url(self)
+    url = property(_get_url)
     
     def save(self, name, content, save=True):
         name = self.field.generate_filename(self.instance, name)
@@ -213,10 +240,13 @@ class ImageWithProcessorsField(JSONField):
     def __init__(self, **kwargs):
         self.thumbnails = kwargs.pop('thumbnails')
         self.upload_to = kwargs.pop('upload_to')
+        self.no_image = kwargs.pop('no_image', None)
         self.storage = kwargs.pop('storage', default_storage)
         JSONField.__init__(self, **kwargs)
     
     def contribute_to_class(self, cls, name):
+        from copy import copy
+        self = copy(self) #allow inherited models to have their own thumbnails defined
         super(ImageWithProcessorsField, self).contribute_to_class(cls, name)
         setattr(cls, self.name, self.descriptor_class(self))
     
