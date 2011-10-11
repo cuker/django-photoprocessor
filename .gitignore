@@ -1,0 +1,6 @@
+*.py[cdo]
+*~
+example/bin
+example/include
+example/lib
+example/media
