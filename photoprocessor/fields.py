@@ -120,14 +120,24 @@ class ImageWithProcessorsFieldFile(FieldFile):
         name = self.data.get('original', None)
         FieldFile.__init__(self, instance, field, name)
     
+    def image(self):
+        self.file.open()
+        self.file.seek(0)
+        try:
+            return Image.open(self.file)
+        except IOError:
+            self.file.seek(0)
+            cf = ContentFile(self.file.read())
+            return Image.open(cf)
+    
     def __getitem__(self, key):
         if key in self.field.thumbnails:
             if key not in self.data and 'original' in self.data:
                 #generate image
                 
                 base_name, base_ext = self.name.split('/')[-1].split('.', 1)
-                source_image = Image.open(self.file)
-                config = self.fields.thumbnails[key]
+                source_image = self.image()
+                config = self.field.thumbnails[key]
                 
                 img, fmt = process_image(source_image, config)
                 
@@ -165,7 +175,7 @@ class ImageWithProcessorsFieldFile(FieldFile):
         
         #now update the children
         base_name, base_ext = name.split('/')[-1].split('.', 1)
-        source_image = Image.open(self.file)
+        source_image = self.image()
         for key, config in self.field.thumbnails.iteritems(): #TODO rename to specs
             if key in self.data and self.data[key].get('config') == config:
                 continue
