@@ -19,6 +19,7 @@ class BookTestCase(unittest.TestCase):
         
         print book.cover['thumbnail']
         print book.cover['thumbnail'].url
+        print book.cover['thumbnail'].width()
         
         print serializers.serialize("xml", [book])
         print serializers.serialize("json", [book])

@@ -114,6 +114,25 @@ class JSONField(models.TextField):
 
 from django.db.models.fields.files import FieldFile
 
+class ImageFile(FieldFile):
+    def __init__(self, instance, field, data, key):
+        self.image_data = data[key]
+        self.key = key
+        name = self.image_data['path']
+        FieldFile.__init__(self, instance, field, name)
+    
+    def width(self):
+        return self.image_data['info']['size']['width']
+    
+    def height(self):
+        return self.image_data['info']['size']['height']
+    
+    def save(self, *args, **kwargs):
+        raise NotImplementedError
+    
+    def delete(self, *args, **kwargs):
+        raise NotImplementedError
+
 class ImageWithProcessorsFieldFile(FieldFile):
     def __init__(self, instance, field, data):
         self.data = data
@@ -152,7 +171,7 @@ class ImageWithProcessorsFieldFile(FieldFile):
                 self.instance.save()
             
             if key in self.data:
-                return FieldFile(self.instance, self.field, self.data[key]['path'])
+                return ImageFile(self.instance, self.field, self.data, key)
             if self.field.no_image is not None:
                 return self.field.no_image
             return FieldFile(self.instance, self.field, None)
