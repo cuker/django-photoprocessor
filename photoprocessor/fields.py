@@ -1,6 +1,6 @@
 from django.db import models
 from django.utils import simplejson
-from django.utils.encoding import force_unicode, smart_str
+from django.utils.encoding import force_unicode, smart_str, smart_unicode
 from django.core.files.storage import default_storage
 from django.core.files import File
 from django.core.files.base import ContentFile
@@ -257,6 +257,13 @@ class ImageWithProcessorsField(JSONField):
         self.no_image = kwargs.pop('no_image', None)
         self.storage = kwargs.pop('storage', default_storage)
         JSONField.__init__(self, **kwargs)
+    
+    def value_to_string(self, obj):
+        """
+        Returns a string value of this field from the passed obj.
+        This is used by the serialization framework.
+        """
+        return smart_unicode(self.dumps(self._get_val_from_obj(obj).data))
     
     def contribute_to_class(self, cls, name):
         from copy import copy

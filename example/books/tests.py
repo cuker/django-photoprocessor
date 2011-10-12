@@ -1,6 +1,8 @@
 import os 
+
 from django.utils import unittest
 from django.core.files import File
+from django.core import serializers
 
 from models import Book
 
@@ -17,6 +19,9 @@ class BookTestCase(unittest.TestCase):
         
         print book.cover['thumbnail']
         print book.cover['thumbnail'].url
+        
+        print serializers.serialize("xml", [book])
+        print serializers.serialize("json", [book])
     
     def test_admin(self):
         import admin
