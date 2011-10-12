@@ -5,27 +5,18 @@
 """
 from lib import Image, ImageEnhance, ImageColor
 
-
-PROCESSORS = dict()
-
-def register_image_processor(key, processor):
-    if isinstance(processor, type):
-        processor = processor(key)
-    PROCESSORS[key] = processor
-
 class ImageProcessor(object):
     """ Base image processor class """
-    def __init__(self, key):
-        self.key = key
 
-    def process(self, img, fmt, config):
-        return img, fmt
+    def process(self, img, config, info):
+        return img
 
 
 class Adjustment(ImageProcessor):
     config_vars = ['color', 'brightness', 'contrast', 'sharpness']
+    key = 'adjustment'
 
-    def process(self, img, fmt, config):
+    def process(self, img, config, info):
         if config.get(self.key, False):
             img = img.convert('RGB')
             for name in ['Color', 'Brightness', 'Contrast', 'Sharpness']:
@@ -35,29 +26,47 @@ class Adjustment(ImageProcessor):
                         img = getattr(ImageEnhance, name)(img).enhance(factor)
                     except ValueError:
                         pass
-        return img, fmt
-
-register_image_processor('adjustment', Adjustment)
+        return img
 
 class Format(ImageProcessor):
     config_vars = ['format']
     format = 'JPEG'
     extension = 'jpg'
 
-    def process(self, img, fmt, config):
-        return img, config.get('format', fmt)
+    def process(self, img, config, info):
+        if 'format' in config:
+            info['format'] = config['format']
+        return img
 
-register_image_processor('format', Format)
+class Quality(ImageProcessor):
+    config_vars = ['quality']
+
+    def process(self, img, config, info):
+        if 'quality' in config:
+            info['quality'] = config['quality']
+        return img
+
+class DimensionInfo(ImageProcessor):
+    def process(self, img, config, info):
+        info['size'] = {'width': img.size[0],
+                        'height': img.size[1],}
+        return img
+
+class ExtraInfo(ImageProcessor):
+    def process(self, img, config, info):
+        info['extra_info'] = img.info
+        return img
 
 class Reflection(ImageProcessor):
     config_vars = ['background_color', 'size', 'opacity']
+    key = 'reflection'
     background_color = '#FFFFFF'
     size = 0.0
     opacity = 0.6
 
-    def process(self, img, fmt, config):
+    def process(self, img, config, info):
         if self.key not in config:
-            return img, fmt
+            return img
         # convert bgcolor string to rgb value
         config = config[self.key]
         background_color = ImageColor.getrgb(config.get('background_color', self.background_color))
@@ -90,22 +99,21 @@ class Reflection(ImageProcessor):
         composite.paste(img, (0, 0))
         composite.paste(reflection, (0, img.size[1]))
         # Save the file as a JPEG
-        fmt = 'JPEG'
+        info['format'] = 'JPEG'
         # return the image complete with reflection effect
-        return composite, fmt
-
-register_image_processor('reflection', Reflection)
+        return composite
 
 class Resize(ImageProcessor):
     config_vars = ['width', 'height', 'crop', 'upscale', 'crop_horizontal', 'crop_vertical']
+    key = 'resize'
     crop = False
     upscale = False
     crop_horizontal = 1
     crop_vertical = 1
 
-    def process(self, img, fmt, config):
+    def process(self, img, config, info):
         if self.key not in config:
-            return img, fmt
+            return img
         cur_width, cur_height = img.size
         config = config[self.key]
         if config.get('crop', False):
@@ -141,11 +149,9 @@ class Resize(ImageProcessor):
             if new_dimensions[0] > cur_width or \
                new_dimensions[1] > cur_height:
                 if not config.get('upscale', False):
-                    return img, fmt
+                    return img
             img = img.resize(new_dimensions, Image.ANTIALIAS)
-        return img, fmt
-
-register_image_processor('resize', Resize)
+        return img
 
 class Transpose(ImageProcessor):
     """ Rotates or flips the image
@@ -163,6 +169,7 @@ class Transpose(ImageProcessor):
 
     """
     config_vars = ['method']
+    key = 'transpose'
     
     EXIF_ORIENTATION_STEPS = {
         1: [],
@@ -177,9 +184,9 @@ class Transpose(ImageProcessor):
 
     method = 'auto'
 
-    def process(self, img, fmt, config):
+    def process(self, img, config, info):
         if self.key not in config:
-            return img, fmt
+            return img
         config = config[self.key]
         if config['method'] == 'auto':
             try:
@@ -191,16 +198,15 @@ class Transpose(ImageProcessor):
             ops = [config['method']]
         for method in ops:
             img = img.transpose(getattr(Image, method))
-        return img, fmt
-
-register_image_processor('transpose', Transpose)
+        return img
 
 #image is Image.open(afile)
 def process_image(image, config):
-    fmt = image.format
+    from settings import PROCESSORS
+    info = {'format':image.format}
     img = image.copy()
-    for proc in PROCESSORS.itervalues():
-        img, fmt = proc.process(img, fmt, config)
-    img.format = fmt
-    return img, fmt
+    for proc in PROCESSORS:
+        img = proc.process(img, config, info)
+    img.format = info['format']
+    return img, info
 
