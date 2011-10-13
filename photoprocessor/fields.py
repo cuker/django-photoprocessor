@@ -149,6 +149,14 @@ class ImageWithProcessorsFieldFile(FieldFile):
             cf = ContentFile(self.file.read())
             return Image.open(cf)
     
+    def has_key(self, key):
+        return key in self.field.thumbnails
+    
+    def __contains__(self, key):
+        return self.has_key(key)
+    
+    #TODO __setitem__ should manually specify the image
+    
     def __getitem__(self, key):
         if key in self.field.thumbnails:
             if key not in self.data and 'original' in self.data:
