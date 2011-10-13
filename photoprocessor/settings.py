@@ -12,7 +12,7 @@ default_processors = [
     'photoprocessor.processors.Transpose',
     'photoprocessor.processors.Format',
     'photoprocessor.processors.DimensionInfo',
-    'photoprocessor.processors.ExtraInfo',
+    #'photoprocessor.processors.ExtraInfo',
 ]
 
 PROCESSORS = list()
