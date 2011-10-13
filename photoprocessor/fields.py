@@ -12,7 +12,7 @@ from utils import img_to_fobj
 from processors import process_image
 
 import logging
-import os
+import os,os.path
 import datetime
 
 class JSONFieldDescriptor(object):
@@ -201,7 +201,7 @@ class ImageWithProcessorsFieldFile(FieldFile):
         self._committed = True
         
         #now update the children
-        base_name, base_ext = name.split('/')[-1].split('.', 1)
+        base_name, base_ext = os.path.splitext(os.path.basename(name))
         source_image = self.image()
         for key, config in self.field.thumbnails.iteritems(): #TODO rename to specs
             if key in self.data and self.data[key].get('config') == config:
