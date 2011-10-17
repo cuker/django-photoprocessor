@@ -23,6 +23,9 @@ class BookTestCase(unittest.TestCase):
         
         print serializers.serialize("xml", [book])
         print serializers.serialize("json", [book])
+        
+        book.cover.reprocess_thumbnail_info()
+        print book.cover['thumbnail'].width()
     
     def test_admin(self):
         import admin

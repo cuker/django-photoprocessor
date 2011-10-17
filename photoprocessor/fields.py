@@ -9,10 +9,10 @@ from django import forms
 
 from lib import Image
 from utils import img_to_fobj
-from processors import process_image
+from processors import process_image, process_image_info
 
 import logging
-import os,os.path
+import os
 import datetime
 
 class JSONFieldDescriptor(object):
@@ -191,7 +191,15 @@ class ImageWithProcessorsFieldFile(FieldFile):
         return FieldFile._get_url(self)
     url = property(_get_url)
     
-    def save(self, name, content, save=True):
+    def reprocess_thumbnail_info(self):
+        source_image = self.image()
+        for key, config in self.field.thumbnails.iteritems():
+            if key in self.data:
+                img, info = process_image_info(source_image, config)
+                self.data[key]['info'] = info
+        self.instance.save()
+    
+    def save(self, name, content, save=True, force_reprocess=False):
         name = self.field.generate_filename(self.instance, name)
         self.name = self.storage.save(name, content)
         self.data['original'] = self.name
@@ -204,7 +212,7 @@ class ImageWithProcessorsFieldFile(FieldFile):
         base_name, base_ext = os.path.splitext(os.path.basename(name))
         source_image = self.image()
         for key, config in self.field.thumbnails.iteritems(): #TODO rename to specs
-            if key in self.data and self.data[key].get('config') == config:
+            if not force_reprocess and key in self.data and self.data[key].get('config') == config:
                 continue
             img, info = process_image(source_image, config)
             

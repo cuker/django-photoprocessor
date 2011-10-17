@@ -7,6 +7,7 @@ from lib import Image, ImageEnhance, ImageColor
 
 class ImageProcessor(object):
     """ Base image processor class """
+    info_only = False
 
     def process(self, img, config, info):
         return img
@@ -47,12 +48,16 @@ class Quality(ImageProcessor):
         return img
 
 class DimensionInfo(ImageProcessor):
+    info_only = True
+    
     def process(self, img, config, info):
         info['size'] = {'width': img.size[0],
                         'height': img.size[1],}
         return img
 
-class ExtraInfo(ImageProcessor):
+class ExtraInfo(ImageProcessor): #CONSIDER this should only be done on the original image
+    info_only = True
+    
     def process(self, img, config, info):
         info['extra_info'] = img.info
         return img
@@ -207,6 +212,16 @@ def process_image(image, config):
     img = image.copy()
     for proc in PROCESSORS:
         img = proc.process(img, config, info)
+    img.format = info['format']
+    return img, info
+
+def process_image_info(image, config):
+    from settings import PROCESSORS
+    info = {'format':image.format}
+    img = image.copy()
+    for proc in PROCESSORS:
+        if proc.info_only:
+            img = proc.process(img, config, info)
     img.format = info['format']
     return img, info
 
