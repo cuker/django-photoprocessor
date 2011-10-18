@@ -168,7 +168,7 @@ class ImageWithProcessorsFieldFile(FieldFile):
                 
                 img, info = process_image(source_image, config)
                 
-                thumb_name = '%s-%s.%s' % (base_name, key, base_ext)
+                thumb_name = '%s-%s%s' % (base_name, key, base_ext)
                 
                 thumb_name = self.field.generate_filename(self.instance, thumb_name)
                 #not efficient, requires image to be loaded into memory
