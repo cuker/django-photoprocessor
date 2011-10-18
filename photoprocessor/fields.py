@@ -162,7 +162,7 @@ class ImageWithProcessorsFieldFile(FieldFile):
             if key not in self.data and 'original' in self.data:
                 #generate image
                 
-                base_name, base_ext = self.name.split('/')[-1].split('.', 1)
+                base_name, base_ext = os.path.splitext(os.path.basename(name))
                 source_image = self.image()
                 config = self.field.thumbnails[key]
                 
