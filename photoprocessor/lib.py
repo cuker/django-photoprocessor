@@ -5,6 +5,7 @@ try:
     import ImageFile
     import ImageFilter
     import ImageEnhance
+    import ImageChops
     import ImageColor
 except ImportError:
     try:
@@ -12,6 +13,7 @@ except ImportError:
         from PIL import ImageFile
         from PIL import ImageFilter
         from PIL import ImageEnhance
+        from PIL import ImageChops
         from PIL import ImageColor
     except ImportError:
         raise ImportError('Photoprocessor was unable to import the Python Imaging Library. Please confirm it`s installed and available on your current Python path.')
