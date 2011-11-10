@@ -77,6 +77,8 @@ class JSONField(models.TextField):
             return self.field.value_from_object(model_instance)
 
     def get_db_prep_save(self, value, *args, **kwargs):
+        if hasattr(value, 'data'):
+            value = value.data
         if not isinstance(value, basestring):
             value = self.dumps(value)
 
