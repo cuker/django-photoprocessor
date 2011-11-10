@@ -13,7 +13,7 @@ if 'publish' in sys.argv:
     sys.exit()
 
 setup(
-    name='django-imagekit',
+    name='django-photoprocessor',
     version=photoprocessor.__version__,
     description='Automated image processing for Django.',
     author='Jason Kraus',
