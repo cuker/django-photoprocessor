@@ -165,7 +165,12 @@ class ImageWithProcessorsFieldFile(FieldFile):
                 #generate image
                 name = self.name
                 base_name, base_ext = os.path.splitext(os.path.basename(name))
-                source_image = self.image()
+                try:
+                    source_image = self.image()
+                except IOError:
+                    if self.field.no_image is not None:
+                        return self.field.no_image
+                    return FieldFile(self.instance, self.field, None)
                 config = self.field.thumbnails[key]
                 
                 img, info = process_image(source_image, config)
