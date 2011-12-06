@@ -27,6 +27,8 @@ class BookTestCase(unittest.TestCase):
         book.cover.reprocess_thumbnail_info()
         print book.cover['thumbnail'].width()
         
+        print book.cover.width(), book.cover.height()
+        
         book.cover.reprocess_thumbnails(force_reprocess=True)
     
     def test_admin(self):
