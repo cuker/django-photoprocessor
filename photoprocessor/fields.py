@@ -289,6 +289,7 @@ class ImageWithProcessorsField(JSONField):
     attr_class = ImageWithProcessorsFieldFile
     
     def __init__(self, **kwargs):
+        kwargs.setdefault('blank', False)
         self.thumbnails = kwargs.pop('thumbnails')
         self.upload_to = kwargs.pop('upload_to')
         self.no_image = kwargs.pop('no_image', None)
