@@ -123,11 +123,15 @@ class ImageFile(FieldFile):
         name = self.image_data['path']
         FieldFile.__init__(self, instance, field, name)
     
+    @property
+    def info(self):
+        return self.image_data['info']
+    
     def width(self):
-        return self.image_data['info']['size']['width']
+        return self.info['size']['width']
     
     def height(self):
-        return self.image_data['info']['size']['height']
+        return self.info['size']['height']
     
     def save(self, *args, **kwargs):
         raise NotImplementedError
@@ -154,11 +158,15 @@ class ImageWithProcessorsFieldFile(FieldFile):
             cf = ContentFile(self.file.read())
             return Image.open(cf)
     
+    @property
+    def info(self):
+        return self.image_data['info']
+    
     def width(self):
-        return self.image_data['info']['size']['width']
+        return self.info['size']['width']
     
     def height(self):
-        return self.image_data['info']['size']['height']
+        return self.info['size']['height']
     
     def has_key(self, key):
         return key in self.field.thumbnails
@@ -182,16 +190,8 @@ class ImageWithProcessorsFieldFile(FieldFile):
                     return FieldFile(self.instance, self.field, None)
                 config = self.field.thumbnails[key]
                 
-                img, info = process_image(source_image, config)
-                
                 thumb_name = '%s-%s%s' % (base_name, key, base_ext)
-                
-                thumb_name = self.field.generate_filename(self.instance, thumb_name)
-                #not efficient, requires image to be loaded into memory
-                thumb_fobj = ContentFile(img_to_fobj(img, info).read())
-                thumb_name = self.storage.save(thumb_name, thumb_fobj)
-                
-                self.data[key] = {'path':thumb_name, 'config':config, 'info':info}
+                self.data[key] = self._process_thumbnail(source_image, thumb_name, config)
                 self.instance.save()
             
             if key in self.data:
@@ -201,19 +201,43 @@ class ImageWithProcessorsFieldFile(FieldFile):
             return FieldFile(self.instance, self.field, None)
         raise KeyError
     
+    def _process_thumbnail(self, source_image, thumb_name, config):
+        img, info = process_image(source_image, config)
+        
+        thumb_name = self.field.generate_filename(self.instance, thumb_name)
+        #not efficient, requires image to be loaded into memory
+        thumb_fobj = ContentFile(img_to_fobj(img, info).read())
+        thumb_name = self.storage.save(thumb_name, thumb_fobj)
+        
+        return {'path':thumb_name, 'config':config, 'info':info}
+    
     def _get_url(self):
         if not self and self.field.no_image is not None:
             return self.field.no_image.url
         return FieldFile._get_url(self)
     url = property(_get_url)
     
-    def reprocess_thumbnail_info(self):
+    def reprocess_thumbnail_info(self, save=True):
         source_image = self.image()
         for key, config in self.field.thumbnails.iteritems():
             if key in self.data:
                 info = process_image_info(source_image, config)
                 self.data[key]['info'] = info
-        self.instance.save()
+        if save:
+            self.instance.save()
+    
+    def reprocess_thumbnails(self, save=True, force_reprocess=False):
+        base_name, base_ext = os.path.splitext(os.path.basename(self.name))
+        source_image = self.image()
+        for key, config in self.field.thumbnails.iteritems(): #TODO rename to specs
+            if not force_reprocess and key in self.data and self.data[key].get('config') == config:
+                continue
+            thumb_name = '%s-%s%s' % (base_name, key, base_ext)
+            self.data[key] = self._process_thumbnail(source_image, thumb_name, config)
+
+        # Save the object because it has changed, unless save is False
+        if save:
+            self.instance.save()
     
     def save(self, name, content, save=True, force_reprocess=False):
         name = self.field.generate_filename(self.instance, name)
@@ -230,16 +254,8 @@ class ImageWithProcessorsFieldFile(FieldFile):
         for key, config in self.field.thumbnails.iteritems(): #TODO rename to specs
             if not force_reprocess and key in self.data and self.data[key].get('config') == config:
                 continue
-            img, info = process_image(source_image, config)
-            
             thumb_name = '%s-%s%s' % (base_name, key, base_ext)
-            
-            thumb_name = self.field.generate_filename(self.instance, thumb_name)
-            #not efficient, requires image to be loaded into memory
-            thumb_fobj = ContentFile(img_to_fobj(img, info).read())
-            thumb_name = self.storage.save(thumb_name, thumb_fobj)
-            
-            self.data[key] = {'path':thumb_name, 'config':config, 'info':info}
+            self.data[key] = self._process_thumbnail(source_image, thumb_name, config)
         
         self.data['original']['info'] = process_image_info(source_image)
         self.image_data = self.data['original']
