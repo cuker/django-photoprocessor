@@ -260,13 +260,12 @@ def process_image(image, config):
     img.format = info['format']
     return img, info
 
-def process_image_info(image, config):
+def process_image_info(image, config={}):
     from settings import PROCESSORS
     info = {'format':image.format}
     img = image.copy()
     for proc in PROCESSORS:
         if proc.info_only:
             img = proc.process(img, config, info)
-    img.format = info['format']
-    return img, info
+    return info
 

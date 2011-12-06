@@ -138,7 +138,10 @@ class ImageFile(FieldFile):
 class ImageWithProcessorsFieldFile(FieldFile):
     def __init__(self, instance, field, data):
         self.data = data
-        name = self.data.get('original', None)
+        self.image_data = self.data.get('original', dict())
+        if isinstance(self.image_data, basestring): #old style
+            self.image_data = {'path':self.image_data}
+        name = self.image_data.get('path', None)
         FieldFile.__init__(self, instance, field, name)
     
     def image(self):
@@ -150,6 +153,12 @@ class ImageWithProcessorsFieldFile(FieldFile):
             self.file.seek(0)
             cf = ContentFile(self.file.read())
             return Image.open(cf)
+    
+    def width(self):
+        return self.image_data['info']['size']['width']
+    
+    def height(self):
+        return self.image_data['info']['size']['height']
     
     def has_key(self, key):
         return key in self.field.thumbnails
@@ -202,14 +211,14 @@ class ImageWithProcessorsFieldFile(FieldFile):
         source_image = self.image()
         for key, config in self.field.thumbnails.iteritems():
             if key in self.data:
-                img, info = process_image_info(source_image, config)
+                info = process_image_info(source_image, config)
                 self.data[key]['info'] = info
         self.instance.save()
     
     def save(self, name, content, save=True, force_reprocess=False):
         name = self.field.generate_filename(self.instance, name)
         self.name = self.storage.save(name, content)
-        self.data['original'] = self.name
+        self.data['original'] = {'path':self.name}
 
         # Update the filesize cache
         self._size = content.size
@@ -231,6 +240,9 @@ class ImageWithProcessorsFieldFile(FieldFile):
             thumb_name = self.storage.save(thumb_name, thumb_fobj)
             
             self.data[key] = {'path':thumb_name, 'config':config, 'info':info}
+        
+        self.data['original']['info'] = process_image_info(source_image)
+        self.image_data = self.data['original']
 
         # Save the object because it has changed, unless save is False
         if save:
@@ -251,7 +263,8 @@ class ImageWithProcessorsFieldFile(FieldFile):
                 self.storage.delete(image['path'])
 
         self.name = None
-        self.data['original'] = self.name
+        self.data['original'] = {}
+        self.image_data = self.data['original']
 
         # Delete the filesize cache
         if hasattr(self, '_size'):
