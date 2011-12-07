@@ -217,6 +217,12 @@ class ImageWithProcessorsFieldFile(FieldFile):
         return FieldFile._get_url(self)
     url = property(_get_url)
     
+    def reprocess_info(self, save=True):
+        source_image = self.image()
+        self.data['original']['info'] = process_image_info(source_image)
+        if save:
+            self.instance.save()
+    
     def reprocess_thumbnail_info(self, save=True):
         source_image = self.image()
         for key, config in self.field.thumbnails.iteritems():
