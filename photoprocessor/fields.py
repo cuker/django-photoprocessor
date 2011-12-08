@@ -145,6 +145,7 @@ class ImageWithProcessorsFieldFile(FieldFile):
         self.image_data = self.data.get('original', dict())
         if isinstance(self.image_data, basestring): #old style
             self.image_data = {'path':self.image_data}
+            self.data['original'] = self.image_data
         name = self.image_data.get('path', None)
         FieldFile.__init__(self, instance, field, name)
     
