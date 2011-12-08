@@ -246,6 +246,12 @@ class ImageWithProcessorsFieldFile(FieldFile):
         if save:
             self.instance.save()
     
+    def reprocess(self, save=True, force_reprocess=False):
+        self.reprocess_info(save=False)
+        self.reprocess_thumbnails(save=False, force_reprocess=force_reprocess)
+        if save:
+            self.instance.save()
+    
     def save(self, name, content, save=True, force_reprocess=False):
         name = self.field.generate_filename(self.instance, name)
         self.name = self.storage.save(name, content)
