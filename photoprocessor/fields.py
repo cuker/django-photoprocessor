@@ -223,6 +223,7 @@ class ImageWithProcessorsFieldFile(FieldFile):
         self.data['original']['info'] = process_image_info(source_image)
         if save:
             self.instance.save()
+    reprocess_info.alters_data = True
     
     def reprocess_thumbnail_info(self, save=True):
         source_image = self.image()
@@ -232,6 +233,7 @@ class ImageWithProcessorsFieldFile(FieldFile):
                 self.data[key]['info'] = info
         if save:
             self.instance.save()
+    reprocess_thumbnail_info.alters_data = True
     
     def reprocess_thumbnails(self, save=True, force_reprocess=False):
         base_name, base_ext = os.path.splitext(os.path.basename(self.name))
@@ -245,14 +247,16 @@ class ImageWithProcessorsFieldFile(FieldFile):
         # Save the object because it has changed, unless save is False
         if save:
             self.instance.save()
+    reprocess_thumbnails.alters_data = True
     
     def reprocess(self, save=True, force_reprocess=False):
         self.reprocess_info(save=False)
         self.reprocess_thumbnails(save=False, force_reprocess=force_reprocess)
         if save:
             self.instance.save()
+    reprocess.alters_data = True
     
-    def save(self, name, content, save=True, force_reprocess=False):
+    def save(self, name, content, save=True, force_reprocess=True):
         name = self.field.generate_filename(self.instance, name)
         self.name = self.storage.save(name, content)
         self.data['original'] = {'path':self.name}
