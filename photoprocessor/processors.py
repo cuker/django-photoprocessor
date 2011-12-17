@@ -3,7 +3,8 @@
 
 
 """
-from lib import Image, ImageEnhance, ImageColor
+from lib import Image, ImageEnhance, ImageColor, ImageFilter, ImageChops
+from utils import _compare_entropy
 
 class ImageProcessor(object):
     """ Base image processor class """
@@ -108,54 +109,98 @@ class Reflection(ImageProcessor):
         # return the image complete with reflection effect
         return composite
 
+class AutoCrop(ImageProcessor):
+    """
+    Removes white space from around the image
+    """
+    key = 'autocrop'
+    
+    def process(self, img, config, info):
+        if self.key not in config:
+            return img
+        bw = img.convert('1')
+        bw = bw.filter(ImageFilter.MedianFilter)
+        # White background.
+        bg = Image.new('1', img.size, 255)
+        diff = ImageChops.difference(bw, bg)
+        bbox = diff.getbbox()
+        if bbox:
+            img = img.crop(bbox)
+        return img
+
 class Resize(ImageProcessor):
-    config_vars = ['width', 'height', 'crop', 'upscale', 'crop_horizontal', 'crop_vertical']
+    config_vars = ['width', 'height', 'crop', 'upscale',]
+    #crop in ('smart', 'scale')
     key = 'resize'
     crop = False
     upscale = False
-    crop_horizontal = 1
-    crop_vertical = 1
 
     def process(self, img, config, info):
         if self.key not in config:
             return img
         cur_width, cur_height = img.size
         config = config[self.key]
-        if config.get('crop', False):
-            crop_horz = config.get('crop_horizontal', self.crop_horizontal)
-            crop_vert = config.get('crop_vertical', self.crop_vertical)
-            ratio = max(float(config['width']) / cur_width, float(config['height']) / cur_height)
-            resize_x, resize_y = ((cur_width * ratio), (cur_height * ratio))
-            crop_x, crop_y = (abs(config['width'] - resize_x), abs(config['height'] - resize_y))
-            x_diff, y_diff = (int(crop_x / 2), int(crop_y / 2))
-            box_left, box_right = {
-                0: (0, config['width']),
-                1: (int(x_diff), int(x_diff + config['width'])),
-                2: (int(crop_x), int(resize_x)),
-            }[crop_horz]
-            box_upper, box_lower = {
-                0: (0, config['height']),
-                1: (int(y_diff), int(y_diff + config['height'])),
-                2: (int(crop_y), int(resize_y)),
-            }[crop_vert]
-            box = (box_left, box_upper, box_right, box_lower)
-            img = img.resize((int(resize_x), int(resize_y)), Image.ANTIALIAS).crop(box)
+        size = config['width'], config['height']
+        crop = config.get('crop', self.crop)
+        upscale = config.get('upscale', self.upscale)
+        
+        source_x, source_y = [float(v) for v in img.size]
+        target_x, target_y = [float(v) for v in size]
+
+        if crop or not target_x or not target_y:
+            scale = max(target_x / source_x, target_y / source_y)
         else:
-            if not config.get('width', None) is None and not config.get('height') is None:
-                ratio = min(float(config['width']) / cur_width,
-                            float(config['height']) / cur_height)
-            else:
-                if config.get('width', None) is None:
-                    ratio = float(config['height']) / cur_height
-                else:
-                    ratio = float(config['width']) / cur_width
-            new_dimensions = (int(round(cur_width * ratio)),
-                              int(round(cur_height * ratio)))
-            if new_dimensions[0] > cur_width or \
-               new_dimensions[1] > cur_height:
-                if not config.get('upscale', False):
-                    return img
-            img = img.resize(new_dimensions, Image.ANTIALIAS)
+            scale = min(target_x / source_x, target_y / source_y)
+
+        # Handle one-dimensional targets.
+        if not target_x:
+            target_x = source_x * scale
+        elif not target_y:
+            target_y = source_y * scale
+
+        if scale < 1.0 or (scale > 1.0 and upscale):
+            # Resize the image to the target size boundary. Round the scaled
+            # boundary sizes to avoid floating point errors.
+            img = img.resize((int(round(source_x * scale)),
+                              int(round(source_y * scale))),
+                              resample=Image.ANTIALIAS)
+
+        if crop:
+            # Use integer values now.
+            source_x, source_y = img.size
+            # Difference between new image size and requested size.
+            diff_x = int(source_x - min(source_x, target_x))
+            diff_y = int(source_y - min(source_y, target_y))
+            if diff_x or diff_y:
+                # Center cropping (default).
+                halfdiff_x, halfdiff_y = diff_x // 2, diff_y // 2
+                box = [halfdiff_x, halfdiff_y,
+                       min(source_x, int(target_x) + halfdiff_x),
+                       min(source_y, int(target_y) + halfdiff_y)]
+                #TODO edge crop?
+                if crop == 'smart': #TODO this does not appear to work
+                    left = top = 0
+                    right, bottom = source_x, source_y
+                    while diff_x:
+                        slice = min(diff_x, max(diff_x // 5, 10))
+                        start = img.crop((left, 0, left + slice, source_y))
+                        end = img.crop((right - slice, 0, right, source_y))
+                        add, remove = _compare_entropy(start, end, slice, diff_x)
+                        left += add
+                        right -= remove
+                        diff_x = diff_x - add - remove
+                    while diff_y:
+                        slice = min(diff_y, max(diff_y // 5, 10))
+                        start = img.crop((0, top, source_x, top + slice))
+                        end = img.crop((0, bottom - slice, source_x, bottom))
+                        add, remove = _compare_entropy(start, end, slice, diff_y)
+                        top += add
+                        bottom -= remove
+                        diff_y = diff_y - add - remove
+                    box = (left, top, right, bottom)
+                # Finally, crop the image!
+                if crop != 'scale':
+                    img = img.crop(box)
         return img
 
 class Transpose(ImageProcessor):
@@ -215,13 +260,12 @@ def process_image(image, config):
     img.format = info['format']
     return img, info
 
-def process_image_info(image, config):
+def process_image_info(image, config={}):
     from settings import PROCESSORS
     info = {'format':image.format}
     img = image.copy()
     for proc in PROCESSORS:
         if proc.info_only:
             img = proc.process(img, config, info)
-    img.format = info['format']
-    return img, info
+    return info
 

@@ -6,6 +6,7 @@ except ImportError:
 
 default_processors = [
     'photoprocessor.processors.Adjustment',
+    'photoprocessor.processors.AutoCrop',
     'photoprocessor.processors.Resize',
     'photoprocessor.processors.Quality',
     'photoprocessor.processors.Reflection',

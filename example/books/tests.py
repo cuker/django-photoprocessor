@@ -12,7 +12,7 @@ class BookTestCase(unittest.TestCase):
         book = Book(title='Of Mice And Men')
         image = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'thumb.jpg')
         print book.cover
-        book.cover.save('image.jpg', File(open(image)))
+        book.cover.save('image.jpg', File(open(image, 'rb')))
         print book.cover
         print book.cover.data
         print book.cover.url
@@ -26,6 +26,10 @@ class BookTestCase(unittest.TestCase):
         
         book.cover.reprocess_thumbnail_info()
         print book.cover['thumbnail'].width()
+        
+        print book.cover.width(), book.cover.height()
+        
+        book.cover.reprocess_thumbnails(force_reprocess=True)
     
     def test_admin(self):
         import admin
