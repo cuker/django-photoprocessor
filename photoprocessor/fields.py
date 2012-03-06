@@ -141,6 +141,8 @@ class ImageFile(FieldFile):
 
 class ImageWithProcessorsFieldFile(FieldFile):
     def __init__(self, instance, field, data):
+        if isinstance(data, basestring):
+            data = {'original':{'path':data}}
         self.data = data
         self.image_data = self.data.get('original', dict())
         if isinstance(self.image_data, basestring): #old style
@@ -330,6 +332,10 @@ class ImageWithProcessorsDesciptor(JSONFieldDescriptor):
         elif isinstance(value, dict):
             if value:
                 JSONFieldDescriptor.__set__(self, instance, value)
+        elif isinstance(value, ImageWithProcessorsFieldFile):
+            JSONFieldDescriptor.__set__(self, instance, value.data)
+        elif isinstance(value, FieldFile):
+            JSONFieldDescriptor.__set__(self, instance, {'original':{'path':value.name}})
         elif isinstance(value, File):
             name = os.path.split(value.name)[-1]
             content = value
