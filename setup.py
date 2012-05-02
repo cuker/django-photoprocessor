@@ -1,16 +1,10 @@
 #/usr/bin/env python
-import os
-import sys
 import photoprocessor
 
 try:
-    from setuptools import setup
+    from setuptools import setup, find_packages
 except ImportError:
-    from distutils.core import setup
-
-if 'publish' in sys.argv:
-    os.system('python setup.py sdist upload')
-    sys.exit()
+    from distutils.core import setup, find_packages
 
 setup(
     name='django-photoprocessor',
@@ -20,9 +14,7 @@ setup(
     author_email='jasonk@cukerinteractive.com',
     license='BSD',
     url='http://github.com/cuker/django-photoprocessor/',
-    packages=[
-        'photoprocessor',
-    ],
+    packages=find_packages(exclude=['example', 'example.*']),
     classifiers=[
         'Development Status :: 3 - Alpha',
         'Environment :: Web Environment',

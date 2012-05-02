@@ -20,11 +20,11 @@ class Command(BaseCommand):
         accepted_models = set([arg.lower() for arg in args])
         for model in all_models:
             if accepted_models:
-                name = '%s.%s' % (model._meta.app_name, model._meta.object_name)
+                name = '%s.%s' % (model._meta.app_label, model._meta.object_name)
                 name = name.lower()
                 if name not in accepted_models:
                     continue
-            for field in model._meta.get_local_fields():
+            for field in model._meta.local_fields:
                 image_fields = list()
                 if isinstance(field, ImageWithProcessorsFieldFile):
                     image_fields.append(field.name)
