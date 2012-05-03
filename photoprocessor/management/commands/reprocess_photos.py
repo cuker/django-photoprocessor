@@ -41,5 +41,5 @@ class Command(BaseCommand):
                     updated = True
                     val.reprocess(save=False, force_reprocess=force)
             if updated:
-                val.save()
+                instance.save()
 
