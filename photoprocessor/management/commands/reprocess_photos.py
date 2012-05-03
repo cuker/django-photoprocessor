@@ -1,7 +1,7 @@
 from optparse import make_option
 from django.core.management.base import BaseCommand
 
-from photoprocessor.fields import ImageWithProcessorsFieldFile
+from photoprocessor.fields import ImageWithProcessorsField
 
 class Command(BaseCommand):
     help = """Reprocess the photos on your models"""
@@ -26,7 +26,7 @@ class Command(BaseCommand):
                     continue
             for field in model._meta.local_fields:
                 image_fields = list()
-                if isinstance(field, ImageWithProcessorsFieldFile):
+                if isinstance(field, ImageWithProcessorsField):
                     image_fields.append(field.name)
                 if image_fields:
                     print "Processing %s with fields: %s" % (model, image_fields)
