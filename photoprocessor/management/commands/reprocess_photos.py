@@ -29,6 +29,7 @@ class Command(BaseCommand):
                 if isinstance(field, ImageWithProcessorsFieldFile):
                     image_fields.append(field.name)
                 if image_fields:
+                    print "Processing %s with fields: %s" % (model, image_fields)
                     self.reprocess_model(model, image_fields, kwargs['force'])
     
     def reprocess_model(self, model, fields, force=False):
