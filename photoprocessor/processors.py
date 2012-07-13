@@ -130,7 +130,7 @@ class AutoCrop(ImageProcessor):
 
 class Resize(ImageProcessor):
     config_vars = ['width', 'height', 'crop', 'upscale',]
-    #crop in ('smart', 'scale')
+    #crop in ('smart', 'scale', 'center')
     key = 'resize'
     crop = False
     upscale = False
