@@ -146,11 +146,11 @@ class Resize(ImageProcessor):
         
         source_x, source_y = [float(v) for v in img.size]
         target_x, target_y = [float(v) for v in size]
-
-        if crop or not target_x or not target_y:
-            scale = max(target_x / source_x, target_y / source_y)
-        else:
+        
+        if not crop or crop == 'scale':
             scale = min(target_x / source_x, target_y / source_y)
+        else:
+            scale = max(target_x / source_x, target_y / source_y)
 
         # Handle one-dimensional targets.
         if not target_x:
@@ -165,7 +165,7 @@ class Resize(ImageProcessor):
                               int(round(source_y * scale))),
                               resample=Image.ANTIALIAS)
 
-        if crop:
+        if crop and crop != 'scale':
             # Use integer values now.
             source_x, source_y = img.size
             # Difference between new image size and requested size.
@@ -199,8 +199,7 @@ class Resize(ImageProcessor):
                         diff_y = diff_y - add - remove
                     box = (left, top, right, bottom)
                 # Finally, crop the image!
-                if crop != 'scale':
-                    img = img.crop(box)
+                img = img.crop(box)
         return img
 
 class Transpose(ImageProcessor):
