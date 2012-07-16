@@ -14,7 +14,14 @@ setup(
     author_email='jasonk@cukerinteractive.com',
     license='BSD',
     url='http://github.com/cuker/django-photoprocessor/',
-    packages=find_packages(exclude=['example', 'example.*']),
+    packages=find_packages(exclude=['tests']),
+    test_suite='tests.setuptest.SetupTestSuite',
+    tests_require=(
+        'pep8==1.3.1',
+        'coverage',
+        'django',
+        'Mock',
+    ),
     classifiers=[
         'Development Status :: 3 - Alpha',
         'Environment :: Web Environment',
