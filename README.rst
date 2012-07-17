@@ -1,3 +1,6 @@
+.. image:: https://secure.travis-ci.org/cuker/django-photoprocessor.png?branch=master
+   :target: http://travis-ci.org/cuker/django-photoprocessor
+
 =====================
 django-photoprocessor
 =====================
