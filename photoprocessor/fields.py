@@ -309,6 +309,11 @@ class ImageWithProcessorsFieldFile(FieldFile):
         if save:
             self.instance.save()
     delete.alters_data = True
+    
+    def _require_file(self):
+        if self.field.no_image is not None:
+            return
+        return super(ImageWithProcessorsFieldFile, self)._require_file()
 
 class ImageWithProcessorsDesciptor(JSONFieldDescriptor):
     def __get__(self, instance=None, owner=None):
