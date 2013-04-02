@@ -394,7 +394,7 @@ class ImageWithProcessorsField(JSONField):
         from django.contrib.admin import widgets
         if 'widget' in kwargs and kwargs['widget'] == widgets.AdminTextareaWidget:
             kwargs['widget'] = widgets.AdminFileWidget
-        defaults = {'form_class': forms.FileField, 'max_length': self.max_length}
+        defaults = {'form_class': forms.FileField, 'max_length': self.max_length, 'widget':forms.FileField.widget}
         # If a file has been provided previously, then the form doesn't require
         # that a new file is provided this time.
         # The code to mark the form field as not required is used by
