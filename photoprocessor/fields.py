@@ -1,5 +1,5 @@
 from django.db import models
-from django.utils import simplejson
+import json as simplejson
 from django.utils.encoding import force_unicode, smart_str, smart_unicode
 from django.core.files.storage import default_storage
 from django.core.files import File
@@ -352,8 +352,8 @@ class ImageWithProcessorsField(JSONField):
     
     def __init__(self, **kwargs):
         kwargs.setdefault('blank', False)
-        self.thumbnails = kwargs.pop('thumbnails')
-        self.upload_to = kwargs.pop('upload_to')
+        self.thumbnails = kwargs.pop('thumbnails', None)
+        self.upload_to = kwargs.pop('upload_to', None)
         self.no_image = kwargs.pop('no_image', None)
         self.storage = kwargs.pop('storage', default_storage)
         JSONField.__init__(self, **kwargs)
