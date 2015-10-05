@@ -61,13 +61,10 @@ class JSONField(models.TextField):
         self.encoder = encoder
         self.decoder = decoder
 
-    def db_type(self, connection=None):
-        return "text"
-
     def contribute_to_class(self, cls, name):
         super(JSONField, self).contribute_to_class(cls, name)
         setattr(cls, self.name, self.descriptor_class(self))
-    
+
     def pre_save(self, model_instance, add):
         "Returns field's value just before saving."
         descriptor = getattr(model_instance, self.attname)
@@ -104,15 +101,6 @@ class JSONField(models.TextField):
         except ValueError:
             val = None
         return val
-    
-    def south_field_triple(self):
-        "Returns a suitable description of this field for South."
-        # We'll just introspect the _actual_ field.
-        from south.modelsinspector import introspector
-        field_class = "django.db.models.fields.TextField"
-        args, kwargs = introspector(self)
-        # That's our definition!
-        return (field_class, args, kwargs)
 
 from django.db.models.fields.files import FieldFile
 
