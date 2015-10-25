@@ -1,13 +1,13 @@
 """ Photoprocessor utility functions """
 
-import tempfile
+import cStringIO 
 import math
 
 from lib import Image
 
 
 def img_to_fobj(img, info, **kwargs):
-    tmp = tempfile.TemporaryFile()
+    tmp = cStringIO.StringIO()
 
     # Preserve transparency if the image is in Pallette (P) mode.
     if img.mode == 'P':
