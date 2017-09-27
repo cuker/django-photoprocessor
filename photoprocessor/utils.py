@@ -15,9 +15,9 @@ def img_to_fobj(img, info, **kwargs):
     else:
         img.convert('RGB')
     
-    if 'quality' in info:
-        kwargs['quality'] = info['quality']
-    img.save(tmp, info['format'], **kwargs)
+    #if 'quality' in info:
+    #    kwargs['quality'] = info['quality']
+    img.save(tmp, **info)
     tmp.seek(0)
     return tmp
 
