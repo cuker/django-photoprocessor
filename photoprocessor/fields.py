@@ -257,14 +257,19 @@ class ImageWithProcessorsFieldFile(FieldFile):
         
         #now update the children
         base_name, base_ext = os.path.splitext(os.path.basename(name))
-        source_image = self.image()
-        for key, config in self.field.thumbnails.iteritems(): #TODO rename to specs
-            if not force_reprocess and key in self.data and self.data[key].get('config') == config:
-                continue
-            thumb_name = '%s-%s%s' % (base_name, key, base_ext)
-            self.data[key] = self._process_thumbnail(source_image, thumb_name, config)
-        
-        self.data['original']['info'] = process_image_info(source_image)
+        if base_ext.lower() == ".svg":
+            for key, config in self.field.thumbnails.iteritems():
+                self.data[key] =  { 'path':self.name, 'config':config,'info':{} }
+            self.data['original']['info'] = {}
+        else:
+            source_image = self.image()
+            for key, config in self.field.thumbnails.iteritems(): #TODO rename to specs
+                if not force_reprocess and key in self.data and self.data[key].get('config') == config:
+                    continue
+                thumb_name = '%s-%s%s' % (base_name, key, base_ext)
+                self.data[key] = self._process_thumbnail(source_image, thumb_name, config)
+            
+            self.data['original']['info'] = process_image_info(source_image)
         self.image_data = self.data['original']
 
         # Save the object because it has changed, unless save is False
