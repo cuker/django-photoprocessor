@@ -11,6 +11,11 @@ class Command(BaseCommand):
             dest='force',
             default=False,
             help='Force the reprocessing'),
+        make_option('--force-continue',
+            action='store_true',
+            dest='force_continue',
+            default=False,
+            help='Continue reprocessing the next image even if an exception occurs. If not set, the script will stop on unhandled exception.'),
     )
     args = '[appname.modelname ...]'
 
@@ -30,16 +35,23 @@ class Command(BaseCommand):
                     image_fields.append(field.name)
                 if image_fields:
                     print "Processing %s with fields: %s" % (model, image_fields)
-                    self.reprocess_model(model, image_fields, kwargs['force'])
+                    self.reprocess_model(model, image_fields, kwargs['force'], kwargs['force_continue'])
     
-    def reprocess_model(self, model, fields, force=False):
+    def reprocess_model(self, model, fields, force=False, force_continue=False):
         for instance in model.objects.all():
             updated = False
             for field_name in fields:
                 val = getattr(instance, field_name, None)
                 if val:
                     updated = True
-                    val.reprocess(save=False, force_reprocess=force)
+                    try:
+                        val.reprocess(save=False, force_reprocess=force)
+                    except IOError as e:
+                        if force_continue:
+                            print "Could not open '%s' to reprocess field '%s' for %s (pk: %s)"%(val, field_name, model, instance.pk)
+                            continue
+                        else:
+                            raise e
             if updated:
                 instance.save()
 
