@@ -15,6 +15,14 @@ import logging
 import os
 import datetime
 
+# Determine extension if image format changed as part of processing
+EXTENSIONS = {
+    "WEBP": ".webp",
+    "JPEG": ".jpg",
+    "GIF": ".gif",
+    "PNG": ".png",
+}
+
 class JSONFieldDescriptor(object):
     def __init__(self, field):
         self.field = field
@@ -227,7 +235,15 @@ class ImageWithProcessorsFieldFile(FieldFile):
                 if not force_reprocess and key in self.data and self.data[key].get(
                         'config') == config:
                     continue
-                thumb_name = '%s-%s%s%s' % (base_name, key, base_ext)
+                # Fix the extension if the format changed
+                new_ext = ""
+                try:
+                    if config["format"] != source_image.format:
+                        new_ext = EXTENSIONS[config["format"]]
+                except KeyError:
+                    pass
+                thumb_name = '%s-%s%s%s' % (base_name, key, base_ext, new_ext)
+
                 self.data[key] = self._process_thumbnail(source_image, thumb_name,
                                                          config)
             if process_original:
