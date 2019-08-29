@@ -207,7 +207,38 @@ class ImageWithProcessorsFieldFile(FieldFile):
             return self.field.no_image.url
         return FieldFile._get_url(self)
     url = property(_get_url)
-    
+
+    def process_thumbnails(
+            self,
+            save=True,
+            force_reprocess=False,
+            process_original=False,
+            name=None
+    ):
+        name = name or self.name
+        base_name, base_ext = os.path.splitext(os.path.basename(name))
+        if base_ext.lower() == ".svg":
+            for key, config in self.field.thumbnails.iteritems():
+                self.data[key] = {'path': self.name, 'config': config, 'info': {}}
+            self.data['original']['info'] = {}
+        else:
+            source_image = self.image()
+            for key, config in self.field.thumbnails.iteritems():  # TODO rename to specs
+                if not force_reprocess and key in self.data and self.data[key].get(
+                        'config') == config:
+                    continue
+                thumb_name = '%s-%s%s%s' % (base_name, key, base_ext)
+                self.data[key] = self._process_thumbnail(source_image, thumb_name,
+                                                         config)
+            if process_original:
+                self.data['original']['info'] = process_image_info(source_image)
+        if process_original:
+            self.image_data = self.data['original']
+
+        # Save the object because it has changed, unless save is False
+        if save:
+            self.instance.save()
+
     def reprocess_info(self, save=True):
         source_image = self.image()
         self.data['original']['info'] = process_image_info(source_image)
@@ -225,25 +256,9 @@ class ImageWithProcessorsFieldFile(FieldFile):
             self.instance.save()
     reprocess_thumbnail_info.alters_data = True
     
-    def reprocess_thumbnails(self, save=True, force_reprocess=False):
-        base_name, base_ext = os.path.splitext(os.path.basename(self.name))
-        source_image = self.image()
-        for key, config in self.field.thumbnails.iteritems(): #TODO rename to specs
-            if not force_reprocess and key in self.data and self.data[key].get('config') == config:
-                continue
-            thumb_name = '%s-%s%s' % (base_name, key, base_ext)
-            self.data[key] = self._process_thumbnail(source_image, thumb_name, config)
-
-        # Save the object because it has changed, unless save is False
-        if save:
-            self.instance.save()
-    reprocess_thumbnails.alters_data = True
-    
     def reprocess(self, save=True, force_reprocess=False):
         self.reprocess_info(save=False)
-        self.reprocess_thumbnails(save=False, force_reprocess=force_reprocess)
-        if save:
-            self.instance.save()
+        self.process_thumbnails(save=save, force_reprocess=force_reprocess)
     reprocess.alters_data = True
     
     def save(self, name, content, save=True, force_reprocess=True):
@@ -256,25 +271,12 @@ class ImageWithProcessorsFieldFile(FieldFile):
         self._committed = True
         
         #now update the children
-        base_name, base_ext = os.path.splitext(os.path.basename(name))
-        if base_ext.lower() == ".svg":
-            for key, config in self.field.thumbnails.iteritems():
-                self.data[key] =  { 'path':self.name, 'config':config,'info':{} }
-            self.data['original']['info'] = {}
-        else:
-            source_image = self.image()
-            for key, config in self.field.thumbnails.iteritems(): #TODO rename to specs
-                if not force_reprocess and key in self.data and self.data[key].get('config') == config:
-                    continue
-                thumb_name = '%s-%s%s' % (base_name, key, base_ext)
-                self.data[key] = self._process_thumbnail(source_image, thumb_name, config)
-            
-            self.data['original']['info'] = process_image_info(source_image)
-        self.image_data = self.data['original']
-
-        # Save the object because it has changed, unless save is False
-        if save:
-            self.instance.save()
+        self.process_thumbnails(
+            save=save,
+            force_reprocess=force_reprocess,
+            process_original=True,
+            name=name
+        )
     save.alters_data = True
 
     def delete(self, save=True):
